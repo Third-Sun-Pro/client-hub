@@ -1,4 +1,7 @@
 node_modules/
 .env
-clients.db
+data/
 .DS_Store
+clients.db
+clients.db-shm
+clients.db-wal

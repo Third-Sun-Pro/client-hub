@@ -41,7 +41,7 @@ export function createApp(options = {}) {
   app.use(express.json({ limit: '5mb' }));
   app.use(express.static(path.join(__dirname, 'public')));
 
-  const db = createDatabase(options.dbPath || path.join(__dirname, 'clients.db'));
+  const db = createDatabase(options.dbPath || path.join(__dirname, 'data', 'clients.json'));
   const auth = options.skipAuth ? (req, res, next) => next() : authMiddleware;
 
   // CORS for tool integration (other tools on different ports)
@@ -71,8 +71,7 @@ export function createApp(options = {}) {
 
   // Clients API
   app.get('/api/clients', auth, (req, res) => {
-    const stage = req.query.stage || null;
-    res.json(db.listClients(stage));
+    res.json(db.listClients());
   });
 
   app.post('/api/clients', auth, (req, res) => {
@@ -84,7 +83,6 @@ export function createApp(options = {}) {
   app.get('/api/clients/:id', auth, (req, res) => {
     const client = db.getClient(req.params.id);
     if (!client) return res.status(404).json({ error: 'Client not found' });
-    client.notes = db.getNotes(client.id);
     client.attachments = db.listAttachmentTypes(client.id);
     res.json(client);
   });
@@ -99,14 +97,6 @@ export function createApp(options = {}) {
   app.delete('/api/clients/:id', auth, (req, res) => {
     db.deleteClient(req.params.id);
     res.json({ success: true });
-  });
-
-  // Notes
-  app.post('/api/clients/:id/notes', auth, (req, res) => {
-    const { author, content } = req.body;
-    if (!author || !content) return res.status(400).json({ error: 'Author and content required' });
-    const note = db.addNote(req.params.id, { author, content });
-    res.status(201).json(note);
   });
 
   // Attachments
@@ -202,7 +192,7 @@ const isMain = process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpa
 if (isMain) {
   const PORT = process.env.PORT || 3001;
   const app = createApp();
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log('='.repeat(50));
     console.log('Client Hub');
     console.log(`Open http://localhost:${PORT} in your browser`);
