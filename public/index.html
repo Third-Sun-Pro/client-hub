@@ -278,48 +278,76 @@
     <button class="pipeline-tab" data-stage="live" onclick="filterStage('live')">Live<span class="count" id="count-live">0</span></button>
   </div>
 
-  <!-- New client form -->
+  <!-- New client form — two steps -->
   <div class="new-client-form" id="newClientForm">
-    <h2>New Client</h2>
-    <div class="detail-grid">
-      <div class="detail-field">
-        <label>Client Name</label>
-        <input type="text" id="newName" placeholder="e.g. Corner Partners">
+    <!-- Step 1: Paste/Upload -->
+    <div id="newStep1">
+      <h2>New Client</h2>
+      <p style="color:var(--text-light);font-size:14px;margin-bottom:16px;">Paste Zoom notes, Evernote notes, or upload docs — we'll extract the client info for you.</p>
+      <div style="border:2px dashed var(--sand-dark);border-radius:14px;padding:32px;text-align:center;cursor:pointer;margin-bottom:14px;background:var(--sand);transition:all 0.2s;"
+           onclick="document.getElementById('newFileInput').click()"
+           ondragover="event.preventDefault();this.style.borderColor='var(--lagoon)';this.style.background='var(--lagoon-light)'"
+           ondragleave="this.style.borderColor='var(--sand-dark)';this.style.background='var(--sand)'"
+           ondrop="event.preventDefault();this.style.borderColor='var(--sand-dark)';this.style.background='var(--sand)';handleNewFiles(event.dataTransfer.files)">
+        <div style="font-size:28px;margin-bottom:8px;">📄</div>
+        <p style="color:var(--text-light);font-size:14px;">Drag & drop files or click to browse</p>
       </div>
-      <div class="detail-field">
-        <label>Contact Name</label>
-        <input type="text" id="newContact" placeholder="e.g. Bill Gaskill">
+      <input type="file" id="newFileInput" multiple accept=".pdf,.txt,.doc,.docx" style="display:none" onchange="handleNewFiles(this.files)">
+      <ul class="file-list" id="newFileList" style="list-style:none;margin-bottom:14px;"></ul>
+      <textarea id="newNotes" rows="6" placeholder="Paste Zoom transcript, meeting notes, call notes, Evernote notes..." style="width:100%;padding:12px;border:1px solid var(--sand-dark);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;background:var(--sand);resize:vertical;margin-bottom:14px;"></textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-primary" id="extractNewBtn" onclick="extractNewClient()">Extract Client Info →</button>
+        <button class="btn btn-secondary" onclick="showManualForm()">Enter Manually</button>
+        <button class="btn btn-secondary" onclick="toggleNewForm()">Cancel</button>
       </div>
-      <div class="detail-field">
-        <label>Contact Email</label>
-        <input type="text" id="newEmail" placeholder="e.g. bill@example.com">
-      </div>
-      <div class="detail-field">
-        <label>Sector</label>
-        <select id="newSector">
-          <option value="nonprofit">Nonprofit</option>
-          <option value="small-business">Small Business</option>
-          <option value="education">Education</option>
-          <option value="government">Government</option>
-        </select>
-      </div>
-      <div class="detail-field">
-        <label>Project Type</label>
-        <select id="newType">
-          <option value="web-design">Web Design</option>
-          <option value="branding-web">Branding + Web Design</option>
-          <option value="branding">Branding Only</option>
-          <option value="redesign">Website Redesign</option>
-        </select>
-      </div>
-      <div class="detail-field">
-        <label>Keywords</label>
-        <input type="text" id="newKeywords" placeholder="e.g. arts, environment">
-      </div>
+      <div id="newExtractStatus" style="margin-top:12px;padding:12px 16px;border-radius:10px;font-size:14px;display:none;"></div>
     </div>
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-primary" onclick="createClient()">Create Client</button>
-      <button class="btn btn-secondary" onclick="toggleNewForm()">Cancel</button>
+
+    <!-- Step 2: Review/Confirm -->
+    <div id="newStep2" style="display:none;">
+      <h2>Review Client Info</h2>
+      <p style="color:var(--text-light);font-size:14px;margin-bottom:16px;" id="newSummary"></p>
+      <div class="detail-grid">
+        <div class="detail-field">
+          <label>Client Name</label>
+          <input type="text" id="newName" placeholder="e.g. Corner Partners">
+        </div>
+        <div class="detail-field">
+          <label>Contact Name</label>
+          <input type="text" id="newContact" placeholder="e.g. Bill Gaskill">
+        </div>
+        <div class="detail-field">
+          <label>Contact Email</label>
+          <input type="text" id="newEmail" placeholder="e.g. bill@example.com">
+        </div>
+        <div class="detail-field">
+          <label>Sector</label>
+          <select id="newSector">
+            <option value="nonprofit">Nonprofit</option>
+            <option value="small-business">Small Business</option>
+            <option value="education">Education</option>
+            <option value="government">Government</option>
+          </select>
+        </div>
+        <div class="detail-field">
+          <label>Project Type</label>
+          <select id="newType">
+            <option value="web-design">Web Design</option>
+            <option value="branding-web">Branding + Web Design</option>
+            <option value="branding">Branding Only</option>
+            <option value="redesign">Website Redesign</option>
+          </select>
+        </div>
+        <div class="detail-field">
+          <label>Keywords</label>
+          <input type="text" id="newKeywords" placeholder="e.g. arts, environment">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-primary" onclick="createClient()">Create Client & Start Proposal →</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('newStep1').style.display='block';document.getElementById('newStep2').style.display='none';">← Back</button>
+        <button class="btn btn-secondary" onclick="toggleNewForm()">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -420,8 +448,81 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   // New client
+  let newUploadedFiles = [];
+
   function toggleNewForm() {
-    document.getElementById('newClientForm').classList.toggle('open');
+    const form = document.getElementById('newClientForm');
+    form.classList.toggle('open');
+    if (!form.classList.contains('open')) {
+      // Reset both steps
+      document.getElementById('newStep1').style.display = 'block';
+      document.getElementById('newStep2').style.display = 'none';
+      document.getElementById('newNotes').value = '';
+      document.getElementById('newExtractStatus').style.display = 'none';
+      newUploadedFiles = [];
+      document.getElementById('newFileList').innerHTML = '';
+      ['newName','newContact','newEmail','newKeywords'].forEach(id => document.getElementById(id).value = '');
+    }
+  }
+
+  function handleNewFiles(files) {
+    for (const f of files) newUploadedFiles.push(f);
+    document.getElementById('newFileList').innerHTML = newUploadedFiles.map((f, i) =>
+      `<li>${f.name} <span style="color:#999;font-size:12px">(${(f.size/1024).toFixed(0)} KB)</span> <button onclick="newUploadedFiles.splice(${i},1);handleNewFiles([])" style="background:none;border:none;color:var(--coral);cursor:pointer;font-size:16px;">✕</button></li>`
+    ).join('');
+  }
+
+  function showManualForm() {
+    document.getElementById('newStep1').style.display = 'none';
+    document.getElementById('newStep2').style.display = 'block';
+    document.getElementById('newSummary').textContent = 'Fill in the client details manually.';
+  }
+
+  async function extractNewClient() {
+    const btn = document.getElementById('extractNewBtn');
+    const status = document.getElementById('newExtractStatus');
+    const notes = document.getElementById('newNotes').value;
+
+    if (!notes && !newUploadedFiles.length) {
+      alert('Please paste some notes or upload files first.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Extracting...';
+    status.style.display = 'block';
+    status.style.background = 'var(--ocean-light)';
+    status.style.color = 'var(--ocean-dark)';
+    status.textContent = 'Reading your notes and extracting client info...';
+
+    try {
+      const formData = new FormData();
+      formData.append('notes', notes);
+      for (const f of newUploadedFiles) formData.append('files', f);
+
+      const res = await fetch('/api/extract-client', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // Fill in Step 2
+      document.getElementById('newName').value = data.name || '';
+      document.getElementById('newContact').value = data.contactName || '';
+      document.getElementById('newEmail').value = data.contactEmail || '';
+      document.getElementById('newSector').value = data.sector || 'nonprofit';
+      document.getElementById('newType').value = data.projectType || 'web-design';
+      document.getElementById('newKeywords').value = data.keywords || '';
+      document.getElementById('newSummary').textContent = data.summary ? 'AI notes: ' + data.summary : 'Review and adjust the extracted info below.';
+
+      // Show Step 2
+      document.getElementById('newStep1').style.display = 'none';
+      document.getElementById('newStep2').style.display = 'block';
+    } catch (err) {
+      status.style.background = '#FEF2F2';
+      status.style.color = '#991B1B';
+      status.textContent = 'Error: ' + err.message + '. Try entering manually instead.';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Extract Client Info →';
   }
 
   async function createClient() {
@@ -435,10 +536,13 @@
       stage: 'proposal',
     };
     if (!data.name) { alert('Client name is required'); return; }
-    await api('/api/clients', { method: 'POST', body: JSON.stringify(data) });
-    document.getElementById('newClientForm').classList.remove('open');
-    ['newName','newContact','newEmail','newKeywords'].forEach(id => document.getElementById(id).value = '');
+    const created = await api('/api/clients', { method: 'POST', body: JSON.stringify(data) });
+    toggleNewForm();
     await loadClients();
+
+    // Open the Proposal Generator with this client's info
+    const q = `hubClient=${created.id}&clientName=${encodeURIComponent(created.name)}&contactName=${encodeURIComponent(created.contactName||'')}&sector=${created.sector}&projectType=${created.projectType||''}&keywords=${encodeURIComponent(created.keywords||'')}`;
+    window.open(`http://localhost:3000?${q}`, '_blank');
   }
 
   // Client detail

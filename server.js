@@ -4,9 +4,12 @@ import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
+import Anthropic from '@anthropic-ai/sdk';
 import { createDatabase } from './database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const upload = multer({ dest: path.join(__dirname, 'uploads/'), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const APP_PASSWORD = process.env.APP_PASSWORD || 'thirdsun';
 const SECRET = process.env.SESSION_SECRET || 'client-hub-dev-secret';
@@ -116,6 +119,60 @@ export function createApp(options = {}) {
     const data = db.getAttachment(req.params.id, req.params.type);
     if (!data) return res.status(404).json({ error: 'Attachment not found' });
     res.json(data);
+  });
+
+  // Extract client info from pasted notes/uploaded docs
+  app.post('/api/extract-client', auth, upload.array('files', 10), async (req, res) => {
+    try {
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+
+      let content = req.body.notes || '';
+      if (req.files?.length) {
+        for (const file of req.files) {
+          if (file.mimetype === 'application/pdf') {
+            const pdfParse = (await import('pdf-parse')).default;
+            const buffer = fs.readFileSync(file.path);
+            const data = await pdfParse(buffer);
+            content += '\n\n' + data.text;
+          } else {
+            content += '\n\n' + fs.readFileSync(file.path, 'utf-8');
+          }
+          fs.unlinkSync(file.path);
+        }
+      }
+
+      if (!content.trim()) return res.status(400).json({ error: 'No content provided' });
+
+      const client = new Anthropic({ apiKey });
+      const response = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: `Extract client information from the following meeting transcript, notes, or documents. Return ONLY valid JSON:
+
+{
+  "name": "organization/company name",
+  "contactName": "primary contact person's name",
+  "contactEmail": "email if found, or empty string",
+  "sector": "nonprofit" or "small-business" or "education" or "government",
+  "keywords": "2-3 industry keywords separated by commas",
+  "projectType": "web-design" or "branding-web" or "branding" or "redesign",
+  "summary": "1-2 sentence summary of what the client needs"
+}
+
+If a field cannot be determined, use an empty string.
+
+CONTENT:
+${content.slice(0, 8000)}` }],
+      });
+
+      const text = response.content[0].text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const extracted = JSON.parse(text);
+      res.json({ success: true, ...extracted });
+    } catch (err) {
+      console.error('[Extract Error]', err.message);
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Tool integration: public client list for other tools to look up clients
