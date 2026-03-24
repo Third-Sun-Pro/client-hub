@@ -1,0 +1,21 @@
+{
+  "name": "client-hub",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Third Sun client pipeline dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^17.3.1",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.0",
+    "vitest": "^3.1.1"
+  }
+}

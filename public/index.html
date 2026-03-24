@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Third Sun — Client Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ocean: #1B6B7D;
+      --ocean-dark: #14525F;
+      --ocean-light: #E8F4F6;
+      --lagoon: #2AA89A;
+      --lagoon-light: #E6F7F5;
+      --sand: #F7F5F0;
+      --sand-dark: #EDE9E0;
+      --palm: #3D8B5E;
+      --palm-light: #EAF5EE;
+      --coral: #D97459;
+      --driftwood: #5C5247;
+      --shell: #FEFCF8;
+      --text: #2D3436;
+      --text-light: #7A7570;
+      --amber: #D4A017;
+      --amber-light: #FFF8E1;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--sand); color: var(--text); min-height: 100vh; }
+
+    /* Auth */
+    .auth-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, var(--ocean-dark) 0%, var(--lagoon) 100%); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .auth-box { background: var(--shell); padding: 48px; border-radius: 20px; width: 380px; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.25); }
+    .auth-box img { height: 40px; margin-bottom: 20px; }
+    .auth-box h1 { font-size: 22px; margin-bottom: 4px; }
+    .auth-box p { color: var(--text-light); margin-bottom: 28px; font-size: 14px; }
+    .auth-box input { width: 100%; padding: 14px 16px; border: 1px solid var(--sand-dark); border-radius: 12px; font-size: 16px; margin-bottom: 16px; background: var(--sand); font-family: 'Inter', sans-serif; }
+    .auth-box input:focus { outline: none; border-color: var(--ocean); background: #fff; }
+    .auth-box button { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--ocean), var(--lagoon)); color: #fff; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+    .auth-box button:hover { opacity: 0.9; }
+    .auth-error { color: var(--coral); font-size: 14px; margin-bottom: 12px; display: none; }
+
+    /* Header */
+    .header { background: linear-gradient(135deg, var(--ocean-dark) 0%, var(--ocean) 50%, var(--lagoon) 100%); color: #fff; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .header-left { display: flex; align-items: baseline; gap: 14px; }
+    .header img { height: 24px; position: relative; top: 2px; }
+    .header h1 { font-size: 17px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.9; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .btn-header { padding: 8px 16px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 500; transition: all 0.2s; }
+    .btn-header:hover { background: rgba(255,255,255,0.2); }
+
+    /* Layout */
+    .container { max-width: 1300px; margin: 0 auto; padding: 28px; }
+
+    /* Pipeline tabs */
+    .pipeline-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--sand-dark); border-radius: 12px; padding: 4px; }
+    .pipeline-tab { flex: 1; padding: 12px 8px; background: transparent; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; transition: all 0.2s; text-align: center; color: var(--text-light); }
+    .pipeline-tab.active { background: var(--shell); box-shadow: 0 2px 8px rgba(0,0,0,0.06); color: var(--ocean); font-weight: 600; }
+    .pipeline-tab:hover:not(.active) { background: rgba(255,255,255,0.5); }
+    .pipeline-tab .count { display: inline-block; background: var(--ocean-light); color: var(--ocean); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-left: 6px; }
+    .pipeline-tab.active .count { background: var(--ocean); color: #fff; }
+
+    /* Top bar */
+    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .search-box { padding: 10px 14px; border: 1px solid var(--sand-dark); border-radius: 10px; font-size: 14px; width: 280px; background: var(--shell); font-family: 'Inter', sans-serif; }
+    .search-box:focus { outline: none; border-color: var(--ocean); box-shadow: 0 0 0 3px rgba(27,107,125,0.1); }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, var(--ocean), var(--lagoon)); color: #fff; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(27,107,125,0.3); }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .btn-secondary { background: var(--sand-dark); color: var(--text); }
+    .btn-secondary:hover { background: #DDD8CE; }
+    .btn-danger { background: none; color: var(--coral); border: 1px solid var(--coral); padding: 6px 14px; font-size: 12px; }
+    .btn-danger:hover { background: #FEF2F2; }
+
+    /* Client cards */
+    .client-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .client-card { background: var(--shell); border-radius: 14px; padding: 22px; border: 1px solid rgba(0,0,0,0.04); cursor: pointer; transition: all 0.2s; position: relative; }
+    .client-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .client-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .client-card .contact { font-size: 13px; color: var(--text-light); margin-bottom: 12px; }
+    .client-card .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tag-sector { background: var(--ocean-light); color: var(--ocean); }
+    .tag-type { background: var(--lagoon-light); color: var(--lagoon); }
+    .stage-badge { position: absolute; top: 16px; right: 16px; }
+    .stage-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .stage-dot.proposal { background: var(--amber); }
+    .stage-dot.brief { background: var(--ocean); }
+    .stage-dot.build { background: var(--lagoon); }
+    .stage-dot.pre-launch { background: var(--coral); }
+    .stage-dot.live { background: var(--palm); }
+    .attachments-row { display: flex; gap: 6px; margin-top: 12px; }
+    .att-badge { font-size: 11px; padding: 3px 8px; border-radius: 5px; background: var(--palm-light); color: var(--palm); font-weight: 600; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
+    .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+    .empty-state p { margin-bottom: 20px; }
+
+    /* Client detail modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); backdrop-filter: blur(3px); z-index: 50; display: none; }
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; padding-top: 60px; }
+    .modal { background: var(--shell); border-radius: 20px; width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,0.2); }
+    .modal-header { padding: 24px 28px; border-bottom: 1px solid var(--sand-dark); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--shell); border-radius: 20px 20px 0 0; z-index: 1; }
+    .modal-header h2 { font-size: 20px; font-weight: 700; background: linear-gradient(135deg, var(--ocean-dark), var(--lagoon)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-light); padding: 4px 8px; line-height: 1; }
+    .modal-body { padding: 24px 28px; }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+    .detail-field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-light); margin-bottom: 4px; display: block; }
+    .detail-field input, .detail-field select { width: 100%; padding: 10px 12px; border: 1px solid var(--sand-dark); border-radius: 8px; font-size: 14px; background: var(--sand); font-family: 'Inter', sans-serif; }
+    .detail-field input:focus, .detail-field select:focus { outline: none; border-color: var(--ocean); background: #fff; }
+
+    .stage-selector { display: flex; gap: 4px; margin-bottom: 24px; }
+    .stage-btn { flex: 1; padding: 10px 8px; border: 1px solid var(--sand-dark); background: var(--sand); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+    .stage-btn.active { border-color: var(--ocean); background: var(--ocean-light); color: var(--ocean); }
+    .stage-btn:hover:not(.active) { background: var(--sand-dark); }
+
+    /* Sections inside modal */
+    .section { margin-bottom: 24px; }
+    .section h3 { font-size: 14px; font-weight: 700; color: var(--ocean-dark); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .section h3 .tool-link { font-size: 12px; font-weight: 500; color: var(--ocean); cursor: pointer; text-decoration: none; }
+    .section h3 .tool-link:hover { text-decoration: underline; }
+
+    .note-input { display: flex; gap: 8px; margin-bottom: 12px; }
+    .note-input input { flex: 1; }
+    .note-input select { width: 120px; }
+    .note-list { max-height: 200px; overflow-y: auto; }
+    .note-item { padding: 10px 14px; background: var(--sand); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+    .note-item .note-meta { font-size: 11px; color: var(--text-light); margin-bottom: 4px; }
+
+    .att-card { padding: 14px; background: var(--sand); border-radius: 10px; margin-bottom: 8px; }
+    .att-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--ocean-dark); }
+    .att-card p { font-size: 12px; color: var(--text-light); }
+    .no-data { font-size: 13px; color: var(--text-light); font-style: italic; }
+
+    .modal-footer { padding: 16px 28px; border-top: 1px solid var(--sand-dark); display: flex; justify-content: space-between; }
+
+    /* New client form */
+    .new-client-form { background: var(--shell); border-radius: 16px; padding: 28px; border: 1px solid rgba(0,0,0,0.04); margin-bottom: 20px; display: none; }
+    .new-client-form.open { display: block; animation: fadeIn 0.2s ease; }
+    .new-client-form h2 { font-size: 17px; font-weight: 700; color: var(--ocean-dark); margin-bottom: 16px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      .client-grid { grid-template-columns: 1fr; }
+      .pipeline-tabs { flex-wrap: wrap; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .modal { width: 95%; margin: 20px; }
+      .top-bar { flex-direction: column; gap: 12px; }
+      .search-box { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Auth -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <img src="https://thirdsun.com/images/admin/thirdsun-white.png" alt="Third Sun" onerror="this.style.display='none'" style="filter:invert(1);height:40px;">
+    <h1>Client Hub</h1>
+    <p>Sign in to view the pipeline</p>
+    <div class="auth-error" id="authError">Incorrect password</div>
+    <input type="password" id="authPassword" placeholder="Enter password" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Sign In</button>
+  </div>
+</div>
+
+<!-- Client Detail Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Client Name</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Stage -->
+      <div class="stage-selector" id="stageSelector"></div>
+
+      <!-- Client fields -->
+      <div class="detail-grid">
+        <div class="detail-field">
+          <label>Client Name</label>
+          <input type="text" id="dName">
+        </div>
+        <div class="detail-field">
+          <label>Contact Name</label>
+          <input type="text" id="dContact">
+        </div>
+        <div class="detail-field">
+          <label>Contact Email</label>
+          <input type="text" id="dEmail">
+        </div>
+        <div class="detail-field">
+          <label>Sector</label>
+          <select id="dSector">
+            <option value="nonprofit">Nonprofit</option>
+            <option value="small-business">Small Business</option>
+            <option value="education">Education</option>
+            <option value="government">Government</option>
+          </select>
+        </div>
+        <div class="detail-field">
+          <label>Project Type</label>
+          <select id="dType">
+            <option value="web-design">Web Design</option>
+            <option value="branding-web">Branding + Web Design</option>
+            <option value="branding">Branding Only</option>
+            <option value="redesign">Website Redesign</option>
+          </select>
+        </div>
+        <div class="detail-field">
+          <label>Keywords</label>
+          <input type="text" id="dKeywords">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveClientFields()" style="margin-bottom:24px;">Save Changes</button>
+
+      <!-- Tools -->
+      <div class="section">
+        <h3>Tools</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="toolButtons"></div>
+      </div>
+
+      <!-- Attachments -->
+      <div class="section">
+        <h3>Attachments</h3>
+        <div id="attachmentsList"></div>
+      </div>
+
+      <!-- Notes -->
+      <div class="section">
+        <h3>Notes</h3>
+        <div class="note-input">
+          <select id="noteAuthor" style="padding:8px;border:1px solid var(--sand-dark);border-radius:8px;font-family:'Inter',sans-serif;background:var(--sand);">
+            <option value="Jocelyn">Jocelyn</option>
+            <option value="Sabriel">Sabriel</option>
+            <option value="Troy">Troy</option>
+            <option value="Clair">Clair</option>
+            <option value="Shelby">Shelby</option>
+            <option value="Casey">Casey</option>
+          </select>
+          <input type="text" id="noteContent" placeholder="Add a note..." style="padding:8px 12px;border:1px solid var(--sand-dark);border-radius:8px;font-family:'Inter',sans-serif;background:var(--sand);" onkeydown="if(event.key==='Enter')addNote()">
+          <button class="btn btn-primary btn-sm" onclick="addNote()">Add</button>
+        </div>
+        <div class="note-list" id="notesList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger btn" onclick="deleteClient()">Delete Client</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- App -->
+<div class="header">
+  <div class="header-left">
+    <img src="https://thirdsun.com/images/admin/thirdsun-white.png" alt="Third Sun" onerror="this.style.display='none'">
+    <h1>Client Hub</h1>
+  </div>
+  <div class="header-right">
+    <button class="btn-header" onclick="toggleNewForm()">+ New Client</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Pipeline tabs -->
+  <div class="pipeline-tabs" id="pipelineTabs">
+    <button class="pipeline-tab active" data-stage="all" onclick="filterStage('all')">All<span class="count" id="count-all">0</span></button>
+    <button class="pipeline-tab" data-stage="proposal" onclick="filterStage('proposal')">Proposal<span class="count" id="count-proposal">0</span></button>
+    <button class="pipeline-tab" data-stage="brief" onclick="filterStage('brief')">Brief<span class="count" id="count-brief">0</span></button>
+    <button class="pipeline-tab" data-stage="build" onclick="filterStage('build')">Build<span class="count" id="count-build">0</span></button>
+    <button class="pipeline-tab" data-stage="pre-launch" onclick="filterStage('pre-launch')">Pre-Launch<span class="count" id="count-pre-launch">0</span></button>
+    <button class="pipeline-tab" data-stage="live" onclick="filterStage('live')">Live<span class="count" id="count-live">0</span></button>
+  </div>
+
+  <!-- New client form -->
+  <div class="new-client-form" id="newClientForm">
+    <h2>New Client</h2>
+    <div class="detail-grid">
+      <div class="detail-field">
+        <label>Client Name</label>
+        <input type="text" id="newName" placeholder="e.g. Corner Partners">
+      </div>
+      <div class="detail-field">
+        <label>Contact Name</label>
+        <input type="text" id="newContact" placeholder="e.g. Bill Gaskill">
+      </div>
+      <div class="detail-field">
+        <label>Contact Email</label>
+        <input type="text" id="newEmail" placeholder="e.g. bill@example.com">
+      </div>
+      <div class="detail-field">
+        <label>Sector</label>
+        <select id="newSector">
+          <option value="nonprofit">Nonprofit</option>
+          <option value="small-business">Small Business</option>
+          <option value="education">Education</option>
+          <option value="government">Government</option>
+        </select>
+      </div>
+      <div class="detail-field">
+        <label>Project Type</label>
+        <select id="newType">
+          <option value="web-design">Web Design</option>
+          <option value="branding-web">Branding + Web Design</option>
+          <option value="branding">Branding Only</option>
+          <option value="redesign">Website Redesign</option>
+        </select>
+      </div>
+      <div class="detail-field">
+        <label>Keywords</label>
+        <input type="text" id="newKeywords" placeholder="e.g. arts, environment">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="createClient()">Create Client</button>
+      <button class="btn btn-secondary" onclick="toggleNewForm()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="top-bar">
+    <input type="text" class="search-box" placeholder="Search clients..." id="searchBox" oninput="renderClients()">
+    <div style="font-size:13px;color:var(--text-light);" id="clientCount"></div>
+  </div>
+
+  <!-- Client grid -->
+  <div class="client-grid" id="clientGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <h3>No clients yet</h3>
+    <p>Click "+ New Client" to add your first client to the pipeline.</p>
+    <button class="btn btn-primary" onclick="toggleNewForm()">+ New Client</button>
+  </div>
+</div>
+
+<script>
+  const STAGES = ['proposal', 'brief', 'build', 'pre-launch', 'live'];
+  const STAGE_LABELS = { proposal: 'Proposal', brief: 'Brief', build: 'Build', 'pre-launch': 'Pre-Launch', live: 'Live' };
+  const SECTOR_LABELS = { nonprofit: 'Nonprofit', 'small-business': 'Small Business', education: 'Education', government: 'Government' };
+  const TYPE_LABELS = { 'web-design': 'Web Design', 'branding-web': 'Branding + Web', branding: 'Branding', redesign: 'Redesign' };
+  let clients = [];
+  let currentFilter = 'all';
+  let currentClientId = null;
+
+  // Auth
+  async function checkAuth() {
+    const res = await fetch('/check-auth');
+    const data = await res.json();
+    if (data.authenticated) { document.getElementById('authOverlay').style.display = 'none'; loadClients(); }
+  }
+  async function login() {
+    const res = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: document.getElementById('authPassword').value }) });
+    if (res.ok) { document.getElementById('authOverlay').style.display = 'none'; loadClients(); }
+    else document.getElementById('authError').style.display = 'block';
+  }
+  checkAuth();
+
+  // API helpers
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    return res.json();
+  }
+
+  // Load
+  async function loadClients() {
+    clients = await api('/api/clients');
+    updateCounts();
+    renderClients();
+  }
+
+  function updateCounts() {
+    document.getElementById('count-all').textContent = clients.length;
+    for (const s of STAGES) {
+      document.getElementById('count-' + s).textContent = clients.filter(c => c.stage === s).length;
+    }
+  }
+
+  function filterStage(stage) {
+    currentFilter = stage;
+    document.querySelectorAll('.pipeline-tab').forEach(t => t.classList.toggle('active', t.dataset.stage === stage));
+    renderClients();
+  }
+
+  function renderClients() {
+    const search = document.getElementById('searchBox').value.toLowerCase();
+    let filtered = clients;
+    if (currentFilter !== 'all') filtered = filtered.filter(c => c.stage === currentFilter);
+    if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search) || (c.contactName || '').toLowerCase().includes(search));
+
+    const grid = document.getElementById('clientGrid');
+    const empty = document.getElementById('emptyState');
+
+    if (!clients.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      document.getElementById('clientCount').textContent = '';
+      return;
+    }
+    empty.style.display = 'none';
+    document.getElementById('clientCount').textContent = `${filtered.length} client${filtered.length !== 1 ? 's' : ''}`;
+
+    grid.innerHTML = filtered.map(c => `
+      <div class="client-card" onclick="openClient(${c.id})">
+        <div class="stage-badge"><span class="stage-dot ${c.stage}" title="${STAGE_LABELS[c.stage] || c.stage}"></span></div>
+        <h3>${esc(c.name)}</h3>
+        <div class="contact">${esc(c.contactName || '')}${c.contactName && c.contactEmail ? ' · ' : ''}${esc(c.contactEmail || '')}</div>
+        <div class="meta">
+          ${c.sector ? `<span class="tag tag-sector">${SECTOR_LABELS[c.sector] || c.sector}</span>` : ''}
+          ${c.projectType ? `<span class="tag tag-type">${TYPE_LABELS[c.projectType] || c.projectType}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  // New client
+  function toggleNewForm() {
+    document.getElementById('newClientForm').classList.toggle('open');
+  }
+
+  async function createClient() {
+    const data = {
+      name: document.getElementById('newName').value,
+      contactName: document.getElementById('newContact').value,
+      contactEmail: document.getElementById('newEmail').value,
+      sector: document.getElementById('newSector').value,
+      projectType: document.getElementById('newType').value,
+      keywords: document.getElementById('newKeywords').value,
+      stage: 'proposal',
+    };
+    if (!data.name) { alert('Client name is required'); return; }
+    await api('/api/clients', { method: 'POST', body: JSON.stringify(data) });
+    document.getElementById('newClientForm').classList.remove('open');
+    ['newName','newContact','newEmail','newKeywords'].forEach(id => document.getElementById(id).value = '');
+    await loadClients();
+  }
+
+  // Client detail
+  async function openClient(id) {
+    currentClientId = id;
+    const client = await api(`/api/clients/${id}`);
+
+    document.getElementById('modalTitle').textContent = client.name;
+    document.getElementById('dName').value = client.name || '';
+    document.getElementById('dContact').value = client.contactName || '';
+    document.getElementById('dEmail').value = client.contactEmail || '';
+    document.getElementById('dSector').value = client.sector || 'nonprofit';
+    document.getElementById('dType').value = client.projectType || 'web-design';
+    document.getElementById('dKeywords').value = client.keywords || '';
+
+    // Stage selector
+    document.getElementById('stageSelector').innerHTML = STAGES.map(s =>
+      `<button class="stage-btn ${client.stage === s ? 'active' : ''}" onclick="updateStage('${s}')">${STAGE_LABELS[s]}</button>`
+    ).join('');
+
+    // Tool buttons — pass client ID and name so tools can pre-fill and write back
+    const q = `hubClient=${client.id}&clientName=${encodeURIComponent(client.name)}&contactName=${encodeURIComponent(client.contactName||'')}&sector=${client.sector}&projectType=${client.projectType||''}&keywords=${encodeURIComponent(client.keywords||'')}`;
+    document.getElementById('toolButtons').innerHTML = `
+      <a class="btn btn-primary btn-sm" href="http://localhost:3000?${q}" target="_blank">Proposal Generator</a>
+      <a class="btn btn-primary btn-sm" href="http://localhost:3002?${q}" target="_blank">Brief Generator</a>
+      <a class="btn btn-primary btn-sm" href="http://localhost:5000?${q}" target="_blank">Site Crawler</a>
+      <a class="btn btn-secondary btn-sm" href="http://localhost:3003?${q}" target="_blank">Support Hub</a>
+    `;
+
+    // Attachments
+    const attDiv = document.getElementById('attachmentsList');
+    if (client.attachments?.length) {
+      const atts = [];
+      for (const type of client.attachments) {
+        const data = await api(`/api/clients/${id}/attachments/${type}`);
+        atts.push({ type, data });
+      }
+      attDiv.innerHTML = atts.map(a => `
+        <div class="att-card">
+          <h4>${a.type.charAt(0).toUpperCase() + a.type.slice(1)}</h4>
+          <p>${summarizeAttachment(a.type, a.data)}</p>
+        </div>
+      `).join('');
+    } else {
+      attDiv.innerHTML = '<p class="no-data">No attachments yet. Use the tools above to generate content.</p>';
+    }
+
+    // Notes
+    renderNotes(client.notes || []);
+
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function summarizeAttachment(type, data) {
+    if (type === 'proposal') return `Total: $${(data.total || 0).toLocaleString()} · ${Object.keys(data).length} fields`;
+    if (type === 'brief') return `Brief generated · ${(data.content || '').length} characters`;
+    if (type === 'crawl') return `${data.issues || 0} issues found · Score: ${data.score || 'N/A'}`;
+    return `${Object.keys(data).length} fields`;
+  }
+
+  function renderNotes(notes) {
+    document.getElementById('notesList').innerHTML = notes.length
+      ? notes.map(n => `<div class="note-item"><div class="note-meta">${esc(n.author)} · ${new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>${esc(n.content)}</div>`).join('')
+      : '<p class="no-data">No notes yet.</p>';
+  }
+
+  async function addNote() {
+    const content = document.getElementById('noteContent').value.trim();
+    if (!content) return;
+    const author = document.getElementById('noteAuthor').value;
+    await api(`/api/clients/${currentClientId}/notes`, { method: 'POST', body: JSON.stringify({ author, content }) });
+    document.getElementById('noteContent').value = '';
+    const client = await api(`/api/clients/${currentClientId}`);
+    renderNotes(client.notes);
+  }
+
+  async function updateStage(stage) {
+    await api(`/api/clients/${currentClientId}`, { method: 'PUT', body: JSON.stringify({ stage }) });
+    document.querySelectorAll('.stage-btn').forEach(b => b.classList.toggle('active', b.textContent === STAGE_LABELS[stage]));
+    await loadClients();
+  }
+
+  async function saveClientFields() {
+    await api(`/api/clients/${currentClientId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: document.getElementById('dName').value,
+        contactName: document.getElementById('dContact').value,
+        contactEmail: document.getElementById('dEmail').value,
+        sector: document.getElementById('dSector').value,
+        projectType: document.getElementById('dType').value,
+        keywords: document.getElementById('dKeywords').value,
+      }),
+    });
+    document.getElementById('modalTitle').textContent = document.getElementById('dName').value;
+    await loadClients();
+  }
+
+  async function deleteClient() {
+    if (!confirm('Delete this client and all their data? This cannot be undone.')) return;
+    await api(`/api/clients/${currentClientId}`, { method: 'DELETE' });
+    closeModal();
+    await loadClients();
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    currentClientId = null;
+  }
+</script>
+</body>
+</html>
