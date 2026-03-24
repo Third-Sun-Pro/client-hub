@@ -187,15 +187,9 @@ ${content.slice(0, 8000)}` }],
   return app;
 }
 
-// Start server if run directly
-const isMain = process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
-if (isMain) {
-  const PORT = process.env.PORT || 3001;
-  const app = createApp();
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log('='.repeat(50));
-    console.log('Client Hub');
-    console.log(`Open http://localhost:${PORT} in your browser`);
-    console.log('='.repeat(50));
-  });
-}
+// Start server
+const PORT = process.env.PORT || 3001;
+const app = createApp();
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Client Hub running on port ${PORT}`);
+});
