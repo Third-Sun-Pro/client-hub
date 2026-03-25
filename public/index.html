@@ -309,7 +309,7 @@
 
   <!-- Clients Section -->
   <div class="section-header">
-    <h2>Clients</h2>
+    <h2>Clients <span id="clientCount" style="font-size:14px;font-weight:600;color:var(--text-muted);"></span></h2>
     <div class="top-bar">
       <input type="text" class="search-box" placeholder="Search clients..." id="searchBox" oninput="renderClients()">
       <button class="archive-toggle" id="archiveToggle" onclick="toggleArchiveView()">Show Finished</button>
@@ -437,6 +437,7 @@
     const source = showingArchived ? archivedClients : clients;
     let filtered = source;
     if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search) || (c.contactName || '').toLowerCase().includes(search));
+    document.getElementById('clientCount').textContent = showingArchived ? `(${source.length} finished)` : `(${source.length})`;
 
     const grid = document.getElementById('clientGrid');
     const empty = document.getElementById('emptyState');
