@@ -129,6 +129,18 @@
 
     .modal-footer { padding: 18px 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
 
+    /* Auto-save indicator */
+    .save-status { font-size: 15px; font-weight: 800; margin-bottom: 28px; height: 24px; transition: opacity 0.3s; }
+    .save-status.saving { color: var(--text-muted); }
+    .save-status.saved { color: var(--orange); }
+    .save-status.error { color: var(--orange); }
+    .detail-grid.flash { animation: saveFlash 0.6s ease; }
+    @keyframes saveFlash { 0% { background: transparent; } 30% { background: rgba(157,154,85,0.15); border-radius: 12px; } 100% { background: transparent; } }
+
+    /* Inline delete confirmation */
+    .delete-confirm { display: inline-flex; align-items: center; gap: 8px; }
+    .delete-confirm .confirm-text { font-size: 13px; font-weight: 600; color: var(--orange); }
+
     /* New client form */
     .new-client-form { background: var(--card); border-radius: 20px; padding: 32px; border: 1px solid var(--border); margin-bottom: 24px; display: none; }
     .new-client-form.open { display: block; animation: fadeIn 0.25s ease; }
@@ -175,19 +187,19 @@
       <div class="detail-grid">
         <div class="detail-field">
           <label>Client Name</label>
-          <input type="text" id="dName">
+          <input type="text" id="dName" onchange="autoSave()">
         </div>
         <div class="detail-field">
           <label>Contact Name</label>
-          <input type="text" id="dContact">
+          <input type="text" id="dContact" onchange="autoSave()">
         </div>
         <div class="detail-field">
           <label>Contact Email</label>
-          <input type="text" id="dEmail">
+          <input type="text" id="dEmail" onchange="autoSave()">
         </div>
         <div class="detail-field">
           <label>Sector</label>
-          <select id="dSector">
+          <select id="dSector" onchange="autoSave()">
             <option value="nonprofit">Nonprofit</option>
             <option value="small-business">Small Business</option>
             <option value="education">Education</option>
@@ -196,7 +208,7 @@
         </div>
         <div class="detail-field">
           <label>Project Type</label>
-          <select id="dType">
+          <select id="dType" onchange="autoSave()">
             <option value="web-design">Web Design</option>
             <option value="branding-web">Branding + Web Design</option>
             <option value="branding">Branding Only</option>
@@ -205,10 +217,10 @@
         </div>
         <div class="detail-field">
           <label>Keywords</label>
-          <input type="text" id="dKeywords">
+          <input type="text" id="dKeywords" onchange="autoSave()">
         </div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="saveClientFields()" style="margin-bottom:28px;">Save Changes</button>
+      <div class="save-status" id="saveStatus"></div>
 
       <div class="section">
         <h3>Open in Tool</h3>
@@ -221,7 +233,9 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-danger btn" onclick="deleteClient()">Delete Client</button>
+      <div id="deleteArea">
+        <button class="btn-danger btn" onclick="confirmDelete()">Delete Client</button>
+      </div>
       <button class="btn btn-secondary" onclick="closeModal()">Close</button>
     </div>
   </div>
@@ -536,6 +550,8 @@
       attDiv.innerHTML = '<p class="no-data">No documents yet. Use the tools above to generate content for this client.</p>';
     }
 
+    document.getElementById('saveStatus').textContent = '';
+    cancelDelete();
     document.getElementById('modalOverlay').classList.add('open');
   }
 
@@ -546,24 +562,57 @@
     return `${Object.keys(data).length} fields`;
   }
 
-  async function saveClientFields() {
-    await api(`/api/clients/${currentClientId}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        name: document.getElementById('dName').value,
-        contactName: document.getElementById('dContact').value,
-        contactEmail: document.getElementById('dEmail').value,
-        sector: document.getElementById('dSector').value,
-        projectType: document.getElementById('dType').value,
-        keywords: document.getElementById('dKeywords').value,
-      }),
-    });
-    document.getElementById('modalTitle').textContent = document.getElementById('dName').value;
-    await loadClients();
+  let saveTimeout;
+  async function autoSave() {
+    const status = document.getElementById('saveStatus');
+    clearTimeout(saveTimeout);
+    status.className = 'save-status saving';
+    status.textContent = 'Saving...';
+    saveTimeout = setTimeout(async () => {
+      try {
+        await api(`/api/clients/${currentClientId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: document.getElementById('dName').value,
+            contactName: document.getElementById('dContact').value,
+            contactEmail: document.getElementById('dEmail').value,
+            sector: document.getElementById('dSector').value,
+            projectType: document.getElementById('dType').value,
+            keywords: document.getElementById('dKeywords').value,
+          }),
+        });
+        document.getElementById('modalTitle').textContent = document.getElementById('dName').value;
+        await loadClients();
+        status.className = 'save-status saved';
+        status.textContent = 'Saved';
+        const grid = document.querySelector('.detail-grid');
+        grid.classList.remove('flash');
+        void grid.offsetWidth;
+        grid.classList.add('flash');
+        setTimeout(() => { status.textContent = ''; }, 2000);
+      } catch (err) {
+        status.className = 'save-status error';
+        status.textContent = 'Save failed — try again';
+      }
+    }, 300);
+  }
+
+  function confirmDelete() {
+    const area = document.getElementById('deleteArea');
+    area.innerHTML = `
+      <div class="delete-confirm">
+        <span class="confirm-text">Delete this client and all documents?</span>
+        <button class="btn-danger btn" onclick="deleteClient()">Yes, delete</button>
+        <button class="btn btn-secondary btn-sm" onclick="cancelDelete()">Cancel</button>
+      </div>`;
+  }
+
+  function cancelDelete() {
+    const area = document.getElementById('deleteArea');
+    area.innerHTML = '<button class="btn-danger btn" onclick="confirmDelete()">Delete Client</button>';
   }
 
   async function deleteClient() {
-    if (!confirm('Delete this client and all their documents? This cannot be undone.')) return;
     await api(`/api/clients/${currentClientId}`, { method: 'DELETE' });
     closeModal();
     await loadClients();
