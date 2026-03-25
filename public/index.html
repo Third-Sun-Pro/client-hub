@@ -141,6 +141,17 @@
     .delete-confirm { display: inline-flex; align-items: center; gap: 8px; }
     .delete-confirm .confirm-text { font-size: 13px; font-weight: 600; color: var(--orange); }
 
+    /* Archive toggle */
+    .archive-toggle { font-size: 14px; font-weight: 600; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: all 0.2s; }
+    .archive-toggle:hover { color: var(--brown); background: var(--cream-dark); }
+    .archive-toggle.active { color: var(--green); background: var(--green-light); }
+    .client-card.archived { opacity: 0.7; border-style: dashed; }
+    .client-card.archived h3::after { content: ' (finished)'; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+    /* Finished button */
+    .btn-finished { background: var(--green); color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+    .btn-finished:hover { background: var(--gold); }
+
     /* New client form */
     .new-client-form { background: var(--card); border-radius: 20px; padding: 32px; border: 1px solid var(--border); margin-bottom: 24px; display: none; }
     .new-client-form.open { display: block; animation: fadeIn 0.25s ease; }
@@ -236,7 +247,10 @@
       <div id="deleteArea">
         <button class="btn-danger btn" onclick="confirmDelete()">Delete Client</button>
       </div>
-      <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn-finished" id="finishBtn" onclick="archiveClient()">Finished</button>
+        <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -285,6 +299,7 @@
     <h2>Clients</h2>
     <div class="top-bar">
       <input type="text" class="search-box" placeholder="Search clients..." id="searchBox" oninput="renderClients()">
+      <button class="archive-toggle" id="archiveToggle" onclick="toggleArchiveView()">Show Finished</button>
       <button class="btn btn-primary" onclick="toggleNewForm()">+ New Client</button>
     </div>
   </div>
@@ -373,6 +388,8 @@
   const TYPE_LABELS = { 'web-design': 'Web Design', 'branding-web': 'Branding + Web', branding: 'Branding', redesign: 'Redesign' };
   const DOC_LABELS = { proposal: 'Proposal', brief: 'Brief', crawl: 'Crawl Report' };
   let clients = [];
+  let archivedClients = [];
+  let showingArchived = false;
   let currentClientId = null;
 
   async function checkAuth() {
@@ -394,26 +411,29 @@
 
   async function loadClients() {
     clients = await api('/api/clients');
+    if (showingArchived) archivedClients = await api('/api/clients/archived');
     renderClients();
   }
 
   function renderClients() {
     const search = document.getElementById('searchBox').value.toLowerCase();
-    let filtered = clients;
+    const source = showingArchived ? archivedClients : clients;
+    let filtered = source;
     if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search) || (c.contactName || '').toLowerCase().includes(search));
 
     const grid = document.getElementById('clientGrid');
     const empty = document.getElementById('emptyState');
 
-    if (!clients.length) {
+    if (!source.length) {
       grid.innerHTML = '';
       empty.style.display = 'block';
+      empty.querySelector('p').textContent = showingArchived ? 'No finished clients yet.' : 'No clients yet. Create your first client to get started.';
       return;
     }
     empty.style.display = 'none';
 
     grid.innerHTML = filtered.map(c => `
-      <div class="client-card" onclick="openClient(${c.id})">
+      <div class="client-card${showingArchived ? ' archived' : ''}" onclick="openClient(${c.id}, ${showingArchived})">
         <h3>${esc(c.name)}</h3>
         <div class="contact">${esc(c.contactName || '')}${c.contactName && c.contactEmail ? ' &middot; ' : ''}${esc(c.contactEmail || '')}</div>
         <div class="meta">
@@ -512,9 +532,19 @@
     await loadClients();
   }
 
-  async function openClient(id) {
+  async function openClient(id, isArchived = false) {
     currentClientId = id;
     const client = await api(`/api/clients/${id}`);
+    const finishBtn = document.getElementById('finishBtn');
+    if (isArchived || client.archived) {
+      finishBtn.textContent = 'Restore';
+      finishBtn.className = 'btn btn-secondary';
+      finishBtn.onclick = () => restoreClient();
+    } else {
+      finishBtn.textContent = 'Finished';
+      finishBtn.className = 'btn-finished';
+      finishBtn.onclick = () => archiveClient();
+    }
 
     document.getElementById('modalTitle').textContent = client.name;
     document.getElementById('dName').value = client.name || '';
@@ -616,6 +646,35 @@
     await api(`/api/clients/${currentClientId}`, { method: 'DELETE' });
     closeModal();
     await loadClients();
+  }
+
+  async function archiveClient() {
+    await api(`/api/clients/${currentClientId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ archived: true }),
+    });
+    closeModal();
+    await loadClients();
+  }
+
+  async function restoreClient() {
+    await api(`/api/clients/${currentClientId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ archived: false }),
+    });
+    closeModal();
+    await loadClients();
+  }
+
+  async function toggleArchiveView() {
+    showingArchived = !showingArchived;
+    const btn = document.getElementById('archiveToggle');
+    btn.classList.toggle('active', showingArchived);
+    btn.textContent = showingArchived ? 'Show Active' : 'Show Finished';
+    if (showingArchived) {
+      archivedClients = await api('/api/clients/archived');
+    }
+    renderClients();
   }
 
   function closeModal() {

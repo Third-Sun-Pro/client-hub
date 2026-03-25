@@ -37,14 +37,19 @@ export function createDatabase(dbPath = './data/clients.json') {
       return store.clients.find(c => c.id === Number(id)) || null;
     },
 
-    listClients() {
-      return [...store.clients].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    listClients({ includeArchived = false } = {}) {
+      const filtered = includeArchived ? store.clients : store.clients.filter(c => !c.archived);
+      return [...filtered].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    },
+
+    listArchivedClients() {
+      return [...store.clients.filter(c => c.archived)].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     },
 
     updateClient(id, fields) {
       const client = this.getClient(id);
       if (!client) return null;
-      const allowed = ['name', 'contactName', 'contactEmail', 'sector', 'keywords', 'projectType'];
+      const allowed = ['name', 'contactName', 'contactEmail', 'sector', 'keywords', 'projectType', 'archived'];
       for (const key of allowed) {
         if (fields[key] !== undefined) client[key] = fields[key];
       }

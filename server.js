@@ -83,6 +83,10 @@ export function createApp(options = {}) {
     res.status(201).json(client);
   });
 
+  app.get('/api/clients/archived', auth, (req, res) => {
+    res.json(db.listArchivedClients());
+  });
+
   app.get('/api/clients/:id', auth, (req, res) => {
     const client = db.getClient(req.params.id);
     if (!client) return res.status(404).json({ error: 'Client not found' });
