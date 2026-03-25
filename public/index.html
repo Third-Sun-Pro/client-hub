@@ -95,6 +95,8 @@
     .client-card .meta { display: flex; gap: 8px; flex-wrap: wrap; }
     .tag { padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
     .tag-sector { background: var(--green); color: #fff; }
+    .tag-sector-small-business { background: var(--orange); color: #fff; }
+    .tag-sector-government { background: var(--pink); color: #fff; }
     .tag-type { background: var(--pink-light); color: #B5650A; border: 1px solid rgba(253,174,79,0.25); }
 
     .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
@@ -122,6 +124,7 @@
     .att-card { padding: 16px; background: var(--cream-light); border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--border); }
     .att-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--orange); }
     .att-card p { font-size: 12px; color: var(--text-muted); }
+    .att-card.expanded .att-full { display: block !important; }
     .no-data { font-size: 13px; color: var(--text-muted); font-style: italic; }
 
     .modal-footer { padding: 18px 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
@@ -400,7 +403,7 @@
         <h3>${esc(c.name)}</h3>
         <div class="contact">${esc(c.contactName || '')}${c.contactName && c.contactEmail ? ' &middot; ' : ''}${esc(c.contactEmail || '')}</div>
         <div class="meta">
-          ${c.sector ? `<span class="tag tag-sector">${SECTOR_LABELS[c.sector] || c.sector}</span>` : ''}
+          ${c.sector ? `<span class="tag tag-sector${c.sector !== 'nonprofit' ? ' tag-sector-' + c.sector : ''}">${SECTOR_LABELS[c.sector] || c.sector}</span>` : ''}
           ${c.projectType ? `<span class="tag tag-type">${TYPE_LABELS[c.projectType] || c.projectType}</span>` : ''}
         </div>
       </div>
@@ -523,9 +526,10 @@
         atts.push({ type, data });
       }
       attDiv.innerHTML = atts.map(a => `
-        <div class="att-card">
-          <h4>${DOC_LABELS[a.type] || a.type.charAt(0).toUpperCase() + a.type.slice(1)}</h4>
+        <div class="att-card" ${a.data.markdown ? `onclick="this.classList.toggle('expanded')" style="cursor:pointer;"` : ''}>
+          <h4>${DOC_LABELS[a.type] || a.type.charAt(0).toUpperCase() + a.type.slice(1)}${a.data.markdown ? ' <span style="font-weight:400;font-size:11px;color:var(--text-muted);">click to expand</span>' : ''}</h4>
           <p>${summarizeAttachment(a.type, a.data)}</p>
+          ${a.data.markdown ? `<pre class="att-full" style="display:none;white-space:pre-wrap;font-size:13px;margin-top:12px;max-height:400px;overflow-y:auto;font-family:'DM Sans',sans-serif;color:var(--brown);line-height:1.6;">${esc(a.data.markdown)}</pre>` : ''}
         </div>
       `).join('');
     } else {
@@ -537,7 +541,7 @@
 
   function summarizeAttachment(type, data) {
     if (type === 'proposal') return `Total: $${(data.total || 0).toLocaleString()} &middot; ${Object.keys(data).length} fields`;
-    if (type === 'brief') return `Brief generated &middot; ${(data.content || '').length} characters`;
+    if (type === 'brief') return `Brief generated &middot; ${(data.markdown || data.content || '').length} characters`;
     if (type === 'crawl') return `${data.issues || 0} issues found &middot; Score: ${data.score || 'N/A'}`;
     return `${Object.keys(data).length} fields`;
   }
