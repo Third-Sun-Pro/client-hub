@@ -98,9 +98,12 @@
     .tag-sector-small-business { background: var(--orange); color: #fff; }
     .tag-sector-government { background: var(--pink); color: #fff; }
     .tag-type { background: var(--pink-light); color: #B5650A; border: 1px solid rgba(253,174,79,0.25); }
-    .doc-badges { display: flex; gap: 6px; margin-top: 10px; }
-    .doc-badge { padding: 3px 9px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; background: var(--cream-dark); color: var(--text-muted); }
-    .doc-badge.has-doc { background: var(--green-light); color: var(--green); }
+    .doc-badges { display: flex; gap: 5px; margin-top: 10px; }
+    .doc-badge { width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; background: var(--cream-dark); color: var(--cream); opacity: 0.4; }
+    .doc-badge.has-doc { opacity: 1; color: #fff; }
+    .doc-badge.has-doc.doc-proposal { background: var(--gold); }
+    .doc-badge.has-doc.doc-brief { background: var(--green); }
+    .doc-badge.has-doc.doc-crawl { background: var(--orange); }
 
     .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
     .empty-state h3 { font-size: 20px; margin-bottom: 10px; color: var(--brown); font-weight: 800; }
@@ -456,9 +459,9 @@
           ${c.sector ? `<span class="tag tag-sector${c.sector !== 'nonprofit' ? ' tag-sector-' + c.sector : ''}">${SECTOR_LABELS[c.sector] || c.sector}</span>` : ''}
           ${c.projectType ? `<span class="tag tag-type">${TYPE_LABELS[c.projectType] || c.projectType}</span>` : ''}
         </div>
-        ${atts.length ? `<div class="doc-badges">
-          ${['proposal','brief','crawl'].map(t => `<span class="doc-badge${atts.includes(t) ? ' has-doc' : ''}">${t}</span>`).join('')}
-        </div>` : ''}
+        <div class="doc-badges">
+          ${[['proposal','P'],['brief','B'],['crawl','S']].map(([t,icon]) => `<span class="doc-badge doc-${t}${atts.includes(t) ? ' has-doc' : ''}">${icon}</span>`).join('')}
+        </div>
       </div>`;
     }).join('');
   }
