@@ -41,7 +41,10 @@ export function createApp(options = {}) {
   app.use(express.json({ limit: '5mb' }));
   app.use(express.static(path.join(__dirname, 'public')));
 
-  const db = createDatabase(options.dbPath || path.join(__dirname, 'data', 'clients.json'));
+  const defaultDbPath = process.env.DATA_DIR
+    ? path.join(process.env.DATA_DIR, 'clients.json')
+    : path.join(__dirname, 'data', 'clients.json');
+  const db = createDatabase(options.dbPath || defaultDbPath);
   const auth = options.skipAuth ? (req, res, next) => next() : authMiddleware;
 
   // CORS for tool integration (other tools on different ports)
@@ -189,6 +192,9 @@ ${content.slice(0, 8000)}` }],
 
 // Start server
 const PORT = process.env.PORT || 3001;
+if (!process.env.DATA_DIR) {
+  console.warn('WARNING: DATA_DIR not set — client data will use ./data/ which may not persist across deploys. Set DATA_DIR to a path outside the repo.');
+}
 const app = createApp();
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Client Hub running on port ${PORT}`);
