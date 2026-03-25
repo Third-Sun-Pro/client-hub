@@ -74,7 +74,8 @@ export function createApp(options = {}) {
 
   // Clients API
   app.get('/api/clients', auth, (req, res) => {
-    res.json(db.listClients());
+    const clients = db.listClients();
+    res.json(clients.map(c => ({ ...c, attachments: db.listAttachmentTypes(c.id) })));
   });
 
   app.post('/api/clients', auth, (req, res) => {
@@ -84,7 +85,8 @@ export function createApp(options = {}) {
   });
 
   app.get('/api/clients/archived', auth, (req, res) => {
-    res.json(db.listArchivedClients());
+    const clients = db.listArchivedClients();
+    res.json(clients.map(c => ({ ...c, attachments: db.listAttachmentTypes(c.id) })));
   });
 
   app.get('/api/clients/:id', auth, (req, res) => {
@@ -154,6 +156,7 @@ export function createApp(options = {}) {
   "sector": "nonprofit" or "small-business" or "education" or "government",
   "keywords": "2-3 industry keywords separated by commas",
   "projectType": "web-design" or "branding-web" or "branding" or "redesign",
+  "websiteUrl": "client's current website URL if mentioned, or empty string",
   "summary": "1-2 sentence summary of what the client needs"
 }
 

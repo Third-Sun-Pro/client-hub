@@ -98,6 +98,9 @@
     .tag-sector-small-business { background: var(--orange); color: #fff; }
     .tag-sector-government { background: var(--pink); color: #fff; }
     .tag-type { background: var(--pink-light); color: #B5650A; border: 1px solid rgba(253,174,79,0.25); }
+    .doc-badges { display: flex; gap: 6px; margin-top: 10px; }
+    .doc-badge { padding: 3px 9px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; background: var(--cream-dark); color: var(--text-muted); }
+    .doc-badge.has-doc { background: var(--green-light); color: var(--green); }
 
     .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
     .empty-state h3 { font-size: 20px; margin-bottom: 10px; color: var(--brown); font-weight: 800; }
@@ -105,8 +108,8 @@
 
     /* Client detail modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(91,59,30,0.25); backdrop-filter: blur(8px); z-index: 50; display: none; }
-    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; padding-top: 60px; }
-    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 24px; width: 720px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 32px rgba(91,59,30,0.10); }
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; padding-top: 32px; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 24px; width: 800px; max-height: 88vh; overflow-y: auto; box-shadow: 0 4px 32px rgba(91,59,30,0.10); }
     .modal-header { padding: 28px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--card); border-radius: 24px 24px 0 0; z-index: 1; }
     .modal-header h2 { font-size: 22px; font-weight: 900; color: var(--brown); }
     .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-muted); padding: 4px 8px; line-height: 1; transition: color 0.2s; }
@@ -127,7 +130,7 @@
     .att-card.expanded .att-full { display: block !important; }
     .no-data { font-size: 13px; color: var(--text-muted); font-style: italic; }
 
-    .modal-footer { padding: 18px 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
+    .modal-footer { padding: 18px 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; position: sticky; bottom: 0; background: var(--card); border-radius: 0 0 24px 24px; z-index: 1; }
 
     /* Auto-save indicator */
     .save-status { font-size: 15px; font-weight: 800; margin-bottom: 28px; height: 24px; transition: opacity 0.3s; }
@@ -229,6 +232,13 @@
         <div class="detail-field">
           <label>Keywords</label>
           <input type="text" id="dKeywords" onchange="autoSave()">
+        </div>
+        <div class="detail-field" style="grid-column: 1 / -1;">
+          <label>Website URL</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="url" id="dWebsite" placeholder="https://example.com" onchange="autoSave()" style="flex:1;">
+            <a id="dWebsiteLink" href="#" target="_blank" style="display:none;font-size:13px;font-weight:600;color:var(--green);white-space:nowrap;">Visit</a>
+          </div>
         </div>
       </div>
       <div class="save-status" id="saveStatus"></div>
@@ -365,6 +375,10 @@
           <label>Keywords</label>
           <input type="text" id="newKeywords" placeholder="e.g. arts, environment">
         </div>
+        <div class="detail-field" style="grid-column: 1 / -1;">
+          <label>Website URL</label>
+          <input type="url" id="newWebsite" placeholder="https://example.com">
+        </div>
       </div>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-primary" onclick="createClient()">Create Client</button>
@@ -432,7 +446,9 @@
     }
     empty.style.display = 'none';
 
-    grid.innerHTML = filtered.map(c => `
+    grid.innerHTML = filtered.map(c => {
+      const atts = c.attachments || [];
+      return `
       <div class="client-card${showingArchived ? ' archived' : ''}" onclick="openClient(${c.id}, ${showingArchived})">
         <h3>${esc(c.name)}</h3>
         <div class="contact">${esc(c.contactName || '')}${c.contactName && c.contactEmail ? ' &middot; ' : ''}${esc(c.contactEmail || '')}</div>
@@ -440,8 +456,11 @@
           ${c.sector ? `<span class="tag tag-sector${c.sector !== 'nonprofit' ? ' tag-sector-' + c.sector : ''}">${SECTOR_LABELS[c.sector] || c.sector}</span>` : ''}
           ${c.projectType ? `<span class="tag tag-type">${TYPE_LABELS[c.projectType] || c.projectType}</span>` : ''}
         </div>
-      </div>
-    `).join('');
+        ${atts.length ? `<div class="doc-badges">
+          ${['proposal','brief','crawl'].map(t => `<span class="doc-badge${atts.includes(t) ? ' has-doc' : ''}">${t}</span>`).join('')}
+        </div>` : ''}
+      </div>`;
+    }).join('');
   }
 
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -458,7 +477,7 @@
       document.getElementById('newExtractStatus').style.display = 'none';
       newUploadedFiles = [];
       document.getElementById('newFileList').innerHTML = '';
-      ['newName','newContact','newEmail','newKeywords'].forEach(id => document.getElementById(id).value = '');
+      ['newName','newContact','newEmail','newKeywords','newWebsite'].forEach(id => document.getElementById(id).value = '');
     }
   }
 
@@ -504,6 +523,7 @@
       document.getElementById('newSector').value = data.sector || 'nonprofit';
       document.getElementById('newType').value = data.projectType || 'web-design';
       document.getElementById('newKeywords').value = data.keywords || '';
+      document.getElementById('newWebsite').value = data.websiteUrl || '';
       document.getElementById('newSummary').textContent = data.summary ? 'AI notes: ' + data.summary : 'Review and adjust the extracted info below.';
 
       document.getElementById('newStep1').style.display = 'none';
@@ -525,6 +545,7 @@
       sector: document.getElementById('newSector').value,
       projectType: document.getElementById('newType').value,
       keywords: document.getElementById('newKeywords').value,
+      websiteUrl: document.getElementById('newWebsite').value,
     };
     if (!data.name) { alert('Client name is required'); return; }
     await api('/api/clients', { method: 'POST', body: JSON.stringify(data) });
@@ -553,8 +574,12 @@
     document.getElementById('dSector').value = client.sector || 'nonprofit';
     document.getElementById('dType').value = client.projectType || 'web-design';
     document.getElementById('dKeywords').value = client.keywords || '';
+    document.getElementById('dWebsite').value = client.websiteUrl || '';
+    const websiteLink = document.getElementById('dWebsiteLink');
+    if (client.websiteUrl) { websiteLink.href = client.websiteUrl; websiteLink.style.display = 'inline'; }
+    else { websiteLink.style.display = 'none'; }
 
-    const q = `hubClient=${client.id}&clientName=${encodeURIComponent(client.name)}&contactName=${encodeURIComponent(client.contactName||'')}&sector=${client.sector}&projectType=${client.projectType||''}&keywords=${encodeURIComponent(client.keywords||'')}`;
+    const q = `hubClient=${client.id}&clientName=${encodeURIComponent(client.name)}&contactName=${encodeURIComponent(client.contactName||'')}&sector=${client.sector}&projectType=${client.projectType||''}&keywords=${encodeURIComponent(client.keywords||'')}&websiteUrl=${encodeURIComponent(client.websiteUrl||'')}`;
     document.getElementById('toolButtons').innerHTML = `
       <a class="btn btn-gold btn-sm" href="https://proposalgen.tsapp.us?${q}" target="_blank">Proposal Generator</a>
       <a class="btn btn-primary btn-sm" href="https://briefs.tsapp.us?${q}" target="_blank">Brief Generator</a>
@@ -609,9 +634,13 @@
             sector: document.getElementById('dSector').value,
             projectType: document.getElementById('dType').value,
             keywords: document.getElementById('dKeywords').value,
+            websiteUrl: document.getElementById('dWebsite').value,
           }),
         });
         document.getElementById('modalTitle').textContent = document.getElementById('dName').value;
+        const url = document.getElementById('dWebsite').value;
+        const link = document.getElementById('dWebsiteLink');
+        if (url) { link.href = url; link.style.display = 'inline'; } else { link.style.display = 'none'; }
         await loadClients();
         status.className = 'save-status saved';
         status.textContent = 'Saved';

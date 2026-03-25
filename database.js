@@ -25,6 +25,7 @@ export function createDatabase(dbPath = './data/clients.json') {
         sector: fields.sector || '',
         keywords: fields.keywords || '',
         projectType: fields.projectType || '',
+        websiteUrl: fields.websiteUrl || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -49,7 +50,7 @@ export function createDatabase(dbPath = './data/clients.json') {
     updateClient(id, fields) {
       const client = this.getClient(id);
       if (!client) return null;
-      const allowed = ['name', 'contactName', 'contactEmail', 'sector', 'keywords', 'projectType', 'archived'];
+      const allowed = ['name', 'contactName', 'contactEmail', 'sector', 'keywords', 'projectType', 'websiteUrl', 'archived'];
       for (const key of allowed) {
         if (fields[key] !== undefined) client[key] = fields[key];
       }
