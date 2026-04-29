@@ -3,14 +3,16 @@
 Central client pipeline dashboard for Third Sun Productions. Tracks clients from proposal through launch with integrated tool access.
 
 ## Stack
-- Node.js, Express 5, better-sqlite3
+- Node.js, Express 5
+- SQLite (better-sqlite3) locally; JSON file storage on Hostinger (native modules don't compile on Hostinger shared hosting)
 - Vanilla HTML/CSS/JS frontend
 - HMAC-SHA256 cookie auth
 
 ## Development
 - `npm test` — runs 27 tests (vitest + supertest)
 - `node server.js` — starts on port 3001
-- Database: `clients.db` (SQLite, auto-created, gitignored)
+- Database (local): `clients.db` (SQLite, auto-created, gitignored)
+- Data directory (production): set `DATA_DIR` env var to a path *outside* the deploy folder (e.g. `../data`) so data persists across auto-deploys — Hostinger wipes the app directory on each push
 
 ## Architecture
 - `server.js` — Express app with auth, client CRUD, notes, attachments, hub API
@@ -33,4 +35,6 @@ Other tools communicate with the hub via:
 - **Support Hub** (port 3003) — read-only client lookup
 
 ## Deployment
-Will deploy to Hostinger. `.env` needs `APP_PASSWORD`.
+Deployed at **hub.tsapp.us** (Hostinger, auto-deploy from GitHub).
+
+`.env` needs `APP_PASSWORD` and `DATA_DIR` (pointing outside the deploy folder). Create `.env` manually on the server — deploys wipe the app directory so `.env` must not be committed to git.
