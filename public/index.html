@@ -311,7 +311,7 @@
   <div class="section-header">
     <h2>Clients <span id="clientCount" style="font-size:14px;font-weight:600;color:var(--text-muted);"></span></h2>
     <div class="top-bar">
-      <input type="text" class="search-box" placeholder="Search clients..." id="searchBox" oninput="renderClients()">
+      <input type="search" class="search-box" placeholder="Search clients..." id="searchBox" name="client-search" autocomplete="off" oninput="renderClients()">
       <button class="archive-toggle" id="archiveToggle" onclick="toggleArchiveView()">Show Finished</button>
       <button class="btn btn-primary" onclick="toggleNewForm()">+ New Client</button>
     </div>
@@ -437,15 +437,22 @@
     const source = showingArchived ? archivedClients : clients;
     let filtered = source;
     if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search) || (c.contactName || '').toLowerCase().includes(search));
-    document.getElementById('clientCount').textContent = showingArchived ? `(${source.length} finished)` : `(${source.length})`;
+    const countLabel = showingArchived ? ' finished' : '';
+    document.getElementById('clientCount').textContent = search
+      ? `(${filtered.length} of ${source.length}${countLabel})`
+      : `(${source.length}${countLabel})`;
 
     const grid = document.getElementById('clientGrid');
     const empty = document.getElementById('emptyState');
 
-    if (!source.length) {
+    if (!filtered.length) {
       grid.innerHTML = '';
       empty.style.display = 'block';
-      empty.querySelector('p').textContent = showingArchived ? 'No finished clients yet.' : 'No clients yet. Create your first client to get started.';
+      if (!source.length) {
+        empty.querySelector('p').textContent = showingArchived ? 'No finished clients yet.' : 'No clients yet. Create your first client to get started.';
+      } else {
+        empty.querySelector('p').textContent = `No clients match "${search}".`;
+      }
       return;
     }
     empty.style.display = 'none';
